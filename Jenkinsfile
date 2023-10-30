@@ -2,10 +2,19 @@ pipeline {
     agent any
 
     stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    // Clonar el repositorio de GitHub con las credenciales
+                    git branch: 'master', credentialsId: 'ID_DE_TUS_CREDENCIALES_GITHUB', url: 'https://github.com/eddyg-github/TP7.git'
+                }
+            }
+        }
+
         stage('Build y despliegue') {
             steps {
                 script {
-                    def dockerImageTag = "eddyedged/appweb:v1" // Nombre de la imagen
+                    def dockerImageTag = "eddyedged/appweb:v1" // Nombre de la imagen en DockerHub
 
                     // Construir la imagen Docker
                     sh "docker build -t ${dockerImageTag} ."
@@ -26,6 +35,8 @@ pipeline {
                         sh "echo Inflames21! | docker login -u eddyedged --password-stdin"
                         sh "docker tag ${dockerImageTag} eddyedged/appweb:v1"
                         sh "docker push eddyedged/appweb:v1"
+
+
                     }
                 }
             }
