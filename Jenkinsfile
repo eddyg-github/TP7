@@ -17,13 +17,15 @@ pipeline {
                     // Nombre de la imagen en DockerHub
                     def dockerImageName = "eddyedged/appweb"
                     // Versión de la imagen en DockerHub
-                    def dockerImageTag = "v1" 
-
+                    def dockerImageTag = "v1"
                     // Construir la imagen Docker
-                    sh "docker build -t \${dockerImageName}:\${dockerImageTag} ."
+                    sh "docker build -t ${dockerImageName}:${dockerImageTag} ."
                 }
             }
         }
+
+
+
 
         stage('Ejecución del contenedor') {
             steps {
