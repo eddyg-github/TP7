@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKER_IMAGE_NAME = 'eddyedged/appweb'
         DOCKER_IMAGE_TAG = 'v1' 
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub_id')
         
     }
 
