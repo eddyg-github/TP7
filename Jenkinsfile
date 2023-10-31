@@ -1,11 +1,14 @@
 pipeline {
     agent any
 
+    triggers {
+        cron('H H * * *') // Ejecutar cada 24 horas (en el minuto 'H', hora 'H')
+    }
+
     environment {
         DOCKER_IMAGE_NAME = 'eddyedged/appweb'
         DOCKER_IMAGE_TAG = 'v1' 
         DOCKERHUB_CREDENTIALS = credentials('dockerhub_id')
-        
     }
 
     stages {
@@ -15,10 +18,9 @@ pipeline {
             }
         }
 
-        stage('Build de la imagen') {
+        stage('Build y despliegue') {
             steps {
                 script {
-                    
                     sh "docker build -t \${DOCKER_IMAGE_NAME}:\${DOCKER_IMAGE_TAG} ."
                 }
             }
@@ -27,46 +29,39 @@ pipeline {
         stage('Ejecución del contenedor') {
             steps {
                 script {
-                    sh 'docker ps -f name=tpn7 -q | xargs --no-run-if-empty docker container stop'
-                    sh 'docker container ls -a -fname=tpn7 -q | xargs -r docker container rm'
-                    sh "docker run -d -p 9090:80 --name tpn7 \${DOCKER_IMAGE_NAME}:\${DOCKER_IMAGE_TAG}"
+                    sh "docker ps -q --filter name=appweb | xargs docker stop || true"
+                    sh "docker ps -aq --filter name=appweb | xargs docker rm || true"
+                    sh "docker run -d --name appweb -p 8080:80 --name eddyedged/appweb \${DOCKER_IMAGE_NAME}:\${DOCKER_IMAGE_TAG}"
                 }
             }
         }
 
-    stage('Pruebas de contenedor') {
+        stage('Pruebas de contenedor') {
             steps {
                 script {
-                    sh 'cat /var/www/html/index.html'
-                    sh "curl -I http://192.168.56.10:9090/index.html"
+                    sh "docker exec appweb ls /usr/share/nginx/html/saludo.html"
+                    sh "curl -I http://localhost:8080/saludo.html" 
                 }
             }
-        }    
-    
-        stage('Pushear a Dockerhub') {
+        }
+
+        stage('Subir la imagen a DockerHub') {
             steps {
                 script {
-
                     sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
-
                     sh 'docker tag \${DOCKER_IMAGE_NAME}:\${DOCKER_IMAGE_TAG} eddyedged/appweb:\${DOCKER_IMAGE_TAG}'
-
                     sh "docker push eddyedged/appweb:\${DOCKER_IMAGE_TAG}"
-                    
-                    
                 }
             }
         }
-
     }
 
-    post ('Resultado'){
+    post {
         success {
-            echo 'Imagen Docker construida, contenedor en ejecución y prueba de acceso a la página web exitosa.'
+            echo 'Pipeline ejecutado con éxito: Imagen Docker construida, contenedor en ejecución y prueba de acceso a la página web exitosa.'
         }
         failure {
-            error 'Error al construir la imagen Docker, ejecutar el contenedor o realizar la prueba de acceso a la página web.'
-    
+            error 'Error en la ejecución del pipeline: Error al construir la imagen Docker, ejecutar el contenedor o realizar la prueba de acceso a la página web.'
         }
     }
 }
